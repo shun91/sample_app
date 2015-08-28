@@ -17,8 +17,9 @@ describe "Static pages" do
     it_should_behave_like "all static pages"
     it { should_not have_title('| Home') }
 
+    let(:user) { FactoryGirl.create(:user) }
+
     describe "for signed-in users" do
-      let(:user) { FactoryGirl.create(:user) }
       before do
         FactoryGirl.create(:micropost, user: user, content: "Lorem ipsum")
         FactoryGirl.create(:micropost, user: user, content: "Dolor sit amet")
@@ -31,6 +32,51 @@ describe "Static pages" do
           expect(page).to have_selector("li##{item.id}", text: item.content)
         end
       end
+
+      it { should have_content(Micropost.count)}
+      it { should have_content("microposts") }
+    end
+
+    describe "for signed-in users single post" do
+      before do
+        FactoryGirl.create(:micropost, user: user, content: "Lorem ipsum")
+        sign_in user
+        visit root_path
+      end
+
+      it { should have_content(Micropost.count)}
+      it { should have_content("micropost") }
+      it { should_not have_content("microposts") }
+    end
+
+    describe "feed pagination" do
+      before do
+        35.times do |n|
+          FactoryGirl.create(:micropost, user: user, content: "Lorem ipsum #{n}")
+        end
+        sign_in user
+        visit root_path
+      end
+      after { Micropost.delete_all }
+
+      it { should have_selector('div.pagination') }
+
+      it "should list each post" do
+        Micropost.paginate(page: 1).each do |post|
+          expect(page).to have_selector('li', text: post.content)
+        end
+      end
+    end
+
+    describe "not display delete link for other user's post" do
+      let(:other_user) { FactoryGirl.create(:user) }
+      let!(:other_post) { FactoryGirl.create(:micropost, user: other_user, content: "Foo") }
+      before do
+        sign_in user
+        visit root_path
+      end
+
+      it { should_not have_link('delete', href: micropost_path(other_post)) }
     end
   end
 
