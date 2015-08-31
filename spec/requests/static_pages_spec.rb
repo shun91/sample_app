@@ -113,6 +113,20 @@ describe "Static pages" do
     it_should_behave_like "all static pages"
   end
 
+  describe "Profile page" do
+    describe "follower/following counts" do
+        let(:user) { FactoryGirl.create(:user) }
+        let(:other_user) { FactoryGirl.create(:user) }
+        before do
+          other_user.follow!(user)
+          visit user_path(user)
+        end
+
+        it { should have_link("0 following", href: following_user_path(user)) }
+        it { should have_link("1 followers", href: followers_user_path(user)) }
+    end
+  end
+
   it "should have the right links on the layout" do
     visit root_path
     click_link "About"
